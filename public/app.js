@@ -40,7 +40,11 @@ function makePeer(id, name) {
     const s = e.streams[0]; if (!s) return;
     p.streams.add(s.id);
     addTile(s.id, name + (p.streams.size > 1 ? ' (tela)' : ''), s, false);
-    s.onremovetrack = () => { if (!s.getTracks().length) { removeTile(s.id); p.streams.delete(s.id); } };
+    e.track.onunmute = () => addTile(s.id, name, s, false);
+    s.onremovetrack = () => {
+      if (!s.getTracks().length) { removeTile(s.id); p.streams.delete(s.id); }
+      else addTile(s.id, name, s, false);
+    };
   };
   local.getTracks().forEach(t => { const s = pc.addTrack(t, local); if (t.kind === 'video') p.cam = s; });
   if (screen) screen.getTracks().forEach(t => p.scr.push(pc.addTrack(t, screen)));
@@ -78,7 +82,10 @@ function addTile(id, label, stream, muted) {
     const s = document.createElement('span'); s.textContent = label;
     t.append(v, s); $('#grid').append(t);
   }
-  t.querySelector('video').srcObject = stream;
+  const v = t.querySelector('video');
+  v.srcObject = null;
+  v.srcObject = new MediaStream(stream.getTracks());
+  v.play().catch(() => {});
 }
 function removeTile(id) { document.querySelector(`[data-id="${CSS.escape(id)}"]`)?.remove(); }
 function updateCount() { $('#count').textContent = (peers.size + 1) + ' na sala'; }
@@ -98,6 +105,7 @@ $('#cam').onclick = async e => {
     camTrack.stop(); local.removeTrack(camTrack);
     peers.forEach(p => { if (p.cam) p.pc.removeTrack(p.cam); p.cam = null; });
     camTrack = null; e.target.textContent = '📷 Câmera';
+    addTile('me', 'Você', local, true);
   }
 };
 async function stopScreen() {
