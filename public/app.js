@@ -80,14 +80,27 @@ function addTile(id, label, stream, muted) {
     t = document.createElement('div'); t.className = 'tile'; t.dataset.id = id;
     const v = document.createElement('video'); v.autoplay = true; v.playsInline = true; v.muted = muted;
     const s = document.createElement('span'); s.textContent = label;
-    t.append(v, s); $('#grid').append(t);
+    const fs = document.createElement('b'); fs.textContent = '⛶'; fs.title = 'Tela cheia';
+    fs.onclick = e => { e.stopPropagation(); (t.requestFullscreen || t.webkitRequestFullscreen)?.call(t); };
+    t.onclick = () => toggleBig(t);
+    t.append(v, s, fs); $('#grid').append(t);
   }
   const v = t.querySelector('video');
   v.srcObject = null;
   v.srcObject = new MediaStream(stream.getTracks());
   v.play().catch(() => {});
 }
-function removeTile(id) { document.querySelector(`[data-id="${CSS.escape(id)}"]`)?.remove(); }
+function toggleBig(t) {
+  const was = t.classList.contains('big');
+  document.querySelectorAll('.tile.big').forEach(x => x.classList.remove('big'));
+  if (!was) t.classList.add('big');
+  $('#grid').classList.toggle('focus', !was);
+}
+function removeTile(id) {
+  const t = document.querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if (t?.classList.contains('big')) $('#grid').classList.remove('focus');
+  t?.remove();
+}
 function updateCount() { $('#count').textContent = (peers.size + 1) + ' na sala'; }
 
 $('#mic').onclick = e => {
